@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuringTech IVR - Call Activity</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        h1 { text-align: center; color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #fff; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; }
+        th { background-color: #3498db; color: white; }
+        tr:nth-child(even) { background-color: #ecf0f1; }
+        a { color: #2980b9; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .status-completed { color: green; }
+        .status-failed, .status-busy, .status-no-answer { color: red; }
+        .status-in-progress, .status-ringing { color: orange; }
+        .action-forwarded_completed { font-weight: bold; }
+        .action-voicemail_recorded { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Call Activity Feed</h1>
+    <table id="callsTable">
+        <thead>
+            <tr>
+                <th>Start Time</th>
+                <th>From</th>
+                <th>To (Twilio #)</th>
+                <th>Status</th>
+                <th>Action Taken</th>
+                <th>Duration (s)</th>
+                <th>Voicemail</th>
+                <th>Forwarded To</th>
+                <th>Call SID</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Call data will be inserted here by JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+        async function fetchCalls() {
+            try {
+                const response = await fetch('/api/calls');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const calls = await response.json();
+                const tableBody = document.getElementById('callsTable').getElementsByTagName('tbody')[0];
+                tableBody.innerHTML = ''; // Clear existing rows
+
+                if (calls.length === 0) {
+                    const row = tableBody.insertRow();
+                    const cell = row.insertCell();
+                    cell.colSpan = 9;
+                    cell.textContent = 'No calls found.';
+                    cell.style.textAlign = 'center';
+                } else {
+                    calls.forEach(call => {
+                        const row = tableBody.insertRow();
+                        row.insertCell().textContent = call.startTime ? new Date(call.startTime).toLocaleString() : 'N/A';
+                        row.insertCell().textContent = call.from || 'N/A';
+                        row.insertCell().textContent = call.to || 'N/A';
+
+                        const statusCell = row.insertCell();
+                        statusCell.textContent = call.status || 'N/A';
+                        statusCell.className = call.status ? `status-${call.status.replace(/[^a-z0-9]/gi, '-').toLowerCase()}` : '';
+
+                        const actionCell = row.insertCell();
+                        actionCell.textContent = call.actionTaken || 'N/A';
+                        actionCell.className = call.actionTaken ? `action-${call.actionTaken.replace(/[^a-z0-9_]/gi, '-').toLowerCase()}` : '';
+
+                        row.insertCell().textContent = call.duration !== undefined ? call.duration : 'N/A';
+
+                        const voicemailCell = row.insertCell();
+                        if (call.recordingUrl) {
+                            const link = document.createElement('a');
+                            link.href = call.recordingUrl;
+                            link.textContent = 'Play Voicemail';
+                            link.target = '_blank';
+                            voicemailCell.appendChild(link);
+                            if (call.recordingDuration) {
+                                voicemailCell.appendChild(document.createTextNode(` (${call.recordingDuration}s)`));
+                            }
+                        } else {
+                            voicemailCell.textContent = 'N/A';
+                        }
+                        row.insertCell().textContent = call.forwardedTo || 'N/A';
+                        row.insertCell().textContent = call.twilioCallSid || 'N/A';
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to fetch calls:', error);
+                const tableBody = document.getElementById('callsTable').getElementsByTagName('tbody')[0];
+                tableBody.innerHTML = '';
+                const row = tableBody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 9;
+                cell.textContent = 'Failed to load call data.';
+                cell.style.textAlign = 'center';
+                cell.style.color = 'red';
+            }
+        }
+
+        // Fetch calls when the page loads
+        document.addEventListener('DOMContentLoaded', fetchCalls);
+
+        // Refresh data every 30 seconds
+        setInterval(fetchCalls, 30000);
+    </script>
+</body>
+</html> 
