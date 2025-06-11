@@ -28,5 +28,4 @@ const router = Router();
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get('/calls', getAllCalls);
-
 export default router; 

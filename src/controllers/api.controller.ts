@@ -3,6 +3,7 @@ import Call from '../models/Call.model';
 
 export const getAllCalls = async (req: Request, res: Response) => {
   try {
+    console.log('hello into calls')
     const calls = await Call.find()
       .sort({ startTime: -1 }) // Sort by start time, newest first
       .lean(); // .lean() returns plain JavaScript objects, not Mongoose documents (faster for read-only)
